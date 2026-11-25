@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using Jellyfin.Database.Implementations.Entities;
 using Jellyfin.Plugin.Webhook.Destinations;
 using MediaBrowser.Controller;
@@ -74,6 +75,11 @@ public static class DataObjectHelpers
         if (item.Genres is not null && item.Genres.Length > 0)
         {
             dataObject["Genres"] = string.Join(", ", item.Genres);
+        }
+
+        if (!string.IsNullOrEmpty(item.Path))
+        {
+            dataObject["Path"] = item.Path;
         }
 
         if (item is IHasAspectRatio aspectRatioItem && !string.IsNullOrEmpty(aspectRatioItem.AspectRatio))
@@ -436,6 +442,46 @@ public static class DataObjectHelpers
         if (userItemData.LastPlayedDate.HasValue)
         {
             dataObject["LastPlayedDate"] = userItemData.LastPlayedDate;
+        }
+
+        return dataObject;
+    }
+
+    /// <summary>
+    /// Add data of the library containing the item, inferred from the item path.
+    /// </summary>
+    /// <param name="dataObject">The data object.</param>
+    /// <param name="item">Instance of the <see cref="BaseItem"/>.</param>
+    /// <param name="libraryManager">Instance of the <see cref="ILibraryManager"/> interface.</param>
+    /// <returns>The modified data object.</returns>
+    public static Dictionary<string, object> AddLibraryItemData(this Dictionary<string, object> dataObject, BaseItem? item, ILibraryManager libraryManager)
+    {
+        if (item is null || string.IsNullOrEmpty(item.Path))
+        {
+            return dataObject;
+        }
+
+        // Jellyfin does not support nested libraries, so the first library location containing the path is the match.
+        foreach (var library in libraryManager.GetVirtualFolders(false))
+        {
+            foreach (var location in library.Locations)
+            {
+                var libraryPath = Path.EndsInDirectorySeparator(location) ? location : location + Path.DirectorySeparatorChar;
+                if (!item.Path.StartsWith(libraryPath, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                dataObject["LibraryName"] = library.Name;
+
+                // The library id can be missing if the library folder could not be resolved.
+                if (!string.IsNullOrEmpty(library.ItemId))
+                {
+                    dataObject["LibraryId"] = library.ItemId;
+                }
+
+                return dataObject;
+            }
         }
 
         return dataObject;

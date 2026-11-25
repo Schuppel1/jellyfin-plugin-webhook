@@ -119,10 +119,18 @@ See [Templates](Jellyfin.Plugin.Webhook/Templates) for sample templates.
         - item Genre
     - AspectRatio
         - Item aspect ratio
+    - Path
+        - Item path on the server
     - MediaSourceId
         - The media source id
     - Provider_{providerId_lowercase}
         - "Provider_tvdb" "Provider_tmdb" "Provider_imdb"
+
+- BaseItem: Library (only `ItemAdded` and `ItemDeleted`, inferred from the item path)
+    - LibraryId
+        - ID of the library containing the item
+    - LibraryName
+        - Name of the library containing the item
 
 - BaseItem: Season
     - SeriesName
